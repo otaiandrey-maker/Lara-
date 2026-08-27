@@ -2,9 +2,12 @@ name: Gerar APK da Lara
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - principal
 
 jobs:
-  construir:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,17 +25,27 @@ jobs:
           mkdir -p projeto
           unzip -o Lara_Android_Projeto.zip -d projeto
 
-      - name: Configurar Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
+      - name: Encontrar Gradle
+        run: |
+          GRADLEW=$(find projeto -name gradlew -type f | head -n 1)
+          echo "Gradle encontrado em: $GRADLEW"
+          if [ -z "$GRADLEW" ]; then
+            echo "ERRO: gradlew não encontrado no projeto."
+            exit 1
+          fi
+          echo "GRADLEW=$GRADLEW" >> $GITHUB_ENV
+
+      - name: Dar permissão ao Gradle
+        run: chmod +x "$GRADLEW"
 
       - name: Gerar APK
         run: |
-          gradle -p projeto assembleDebug
+          cd "$(dirname "$GRADLEW")"
+          ./gradlew assembleDebug --stacktrace
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: Lara-APK
-          path: projeto/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            projeto/**/build/outputs/apk/debug/*.apk
