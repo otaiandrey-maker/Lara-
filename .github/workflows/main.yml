@@ -25,32 +25,25 @@ jobs:
           mkdir -p projeto
           unzip -o Lara_Android_Projeto.zip -d projeto
 
-      - name: Encontrar Gradle
+      - name: Instalar Gradle
         run: |
-          GRADLEW=$(find projeto -name gradlew -type f | head -n 1)
+          sudo apt-get update
+          sudo apt-get install -y gradle
 
-          echo "Gradle encontrado em: $GRADLEW"
-
-          if [ -z "$GRADLEW" ]; then
-            echo "ERRO: gradlew não encontrado no projeto."
-            echo "Conteúdo do projeto:"
-            find projeto -maxdepth 3 -type f | head -100
-            exit 1
-          fi
-
-          echo "GRADLEW=$GRADLEW" >> "$GITHUB_ENV"
-
-      - name: Dar permissão ao Gradle
-        run: chmod +x "$GRADLEW"
+      - name: Preparar Gradle
+        run: |
+          cd projeto
+          gradle wrapper
+          chmod +x gradlew
 
       - name: Gerar APK
         run: |
-          cd "$(dirname "$GRADLEW")"
+          cd projeto
           ./gradlew assembleDebug --stacktrace
 
       - name: Procurar APK
         run: |
-          echo "APKs encontrados:"
+          echo "Procurando APK..."
           find projeto -type f -name "*.apk" -print
 
       - name: Disponibilizar APK
