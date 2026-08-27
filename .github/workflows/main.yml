@@ -25,15 +25,15 @@ jobs:
           mkdir -p projeto
           unzip -o Lara_Android_Projeto.zip -d projeto
 
-      - name: Instalar Gradle
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gradle
+      - name: Instalar Gradle moderno
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
 
-      - name: Preparar Gradle
+      - name: Criar Gradle Wrapper
         run: |
           cd projeto
-          gradle wrapper
+          gradle wrapper --gradle-version 8.7
           chmod +x gradlew
 
       - name: Gerar APK
@@ -43,7 +43,7 @@ jobs:
 
       - name: Procurar APK
         run: |
-          echo "Procurando APK..."
+          echo "APKs encontrados:"
           find projeto -type f -name "*.apk" -print
 
       - name: Disponibilizar APK
