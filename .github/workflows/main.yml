@@ -11,7 +11,7 @@ jobs:
       - name: Baixar código
         uses: actions/checkout@v4
 
-      - name: Java
+      - name: Configurar Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -19,22 +19,36 @@ jobs:
 
       - name: Descompactar projeto
         run: |
+          mkdir -p projeto
           unzip -o Lara_Android_Projeto.zip -d projeto
 
-      - name: Preparar Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Encontrar projeto Android
+        run: |
+          echo "Arquivos encontrados:"
+          find projeto -maxdepth 5 -type f | head -100
+
+          GRADLEW=$(find projeto -type f -name gradlew | head -1)
+
+          if [ -z "$GRADLEW" ]; then
+            echo "ERRO: gradlew não encontrado."
+            exit 1
+          fi
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          echo "Projeto encontrado em: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Dar permissão ao Gradle
         run: |
-          chmod +x projeto/Lara_Android_Projeto/gradlew
+          chmod +x "$PROJECT_DIR/gradlew"
 
       - name: Gerar APK
-        working-directory: projeto/Lara_Android_Projeto
         run: |
+          cd "$PROJECT_DIR"
           ./gradlew assembleDebug
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: Lara-APK
-          path: projeto/Lara_Android_Projeto/app/build/outputs/apk/debug/app-debug.apk
+          path: '**/app/build/outputs/apk/debug/*.apk'
