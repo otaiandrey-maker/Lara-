@@ -2,32 +2,39 @@ name: Gerar APK da Lara
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - principal
 
 jobs:
-  build:
+  construir:
     runs-on: ubuntu-latest
 
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
 
-      - name: Configurar Java
+      - name: Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Configurar Gradle
+      - name: Descompactar projeto
+        run: |
+          unzip -o Lara_Android_Projeto.zip -d projeto
+
+      - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Dar permissão ao Gradle
+        run: |
+          chmod +x projeto/Lara_Android_Projeto/gradlew
+
       - name: Gerar APK
-        run: gradle assembleDebug
+        working-directory: projeto/Lara_Android_Projeto
+        run: |
+          ./gradlew assembleDebug
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: Lara-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: projeto/Lara_Android_Projeto/app/build/outputs/apk/debug/app-debug.apk
