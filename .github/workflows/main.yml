@@ -36,16 +36,19 @@ jobs:
           gradle wrapper --gradle-version 8.7
           chmod +x gradlew
 
-      - name: Corrigir compatibilidade Java e Kotlin
+      - name: Corrigir Java e Kotlin
         run: |
           cd projeto
-          python3 - <<'PY'
+          python3 <<'PY'
           from pathlib import Path
 
-          p = Path("app/build.gradle")
-          s = p.read_text()
+          arquivo = Path("app/build.gradle")
+          texto = arquivo.read_text()
 
-          bloco = """
+          texto = texto.replace("\\\\n", "")
+
+          texto += """
+          
           android {
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
@@ -60,10 +63,7 @@ jobs:
           }
           """
 
-          if "compileOptions" not in s:
-              s += "\\n" + bloco
-
-          p.write_text(s)
+          arquivo.write_text(texto)
           PY
 
       - name: Gerar APK
