@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - principal
+      - main
 
 jobs:
   build:
@@ -30,31 +30,45 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Preparar Gradle
+      - name: Localizar projeto Android
         run: |
-          cd projeto
-          gradle wrapper --gradle-version 8.7
-          chmod +x gradlew
+          echo "Conteúdo extraído:"
+          find projeto -maxdepth 4 -type f | sort
+
+          if [ -f "projeto/settings.gradle" ] || [ -f "projeto/settings.gradle.kts" ]; then
+            echo "PROJECT_DIR=projeto" >> $GITHUB_ENV
+          else
+            DIR=$(find projeto -name settings.gradle -o -name settings.gradle.kts | head -1 | xargs dirname)
+            echo "PROJECT_DIR=$DIR" >> $GITHUB_ENV
+          fi
 
       - name: Corrigir Java e Kotlin
         run: |
-          cd projeto
+          cd "$PROJECT_DIR"
+
           python3 <<'PY'
           from pathlib import Path
 
           arquivo = Path("app/build.gradle")
-          texto = arquivo.read_text()
 
-          texto = texto.replace("\\\\n", "")
+          if arquivo.exists():
+              texto = arquivo.read_text()
 
-          texto += """
-          
+              texto = texto.replace("\\n", "\n")
+
+              if "sourceCompatibility" not in texto:
+                  texto += """
+
           android {
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
               }
           }
+          """
+
+              if "jvmTarget = \"17\"" not in texto:
+                  texto += """
 
           tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
               kotlinOptions {
@@ -63,22 +77,30 @@ jobs:
           }
           """
 
-          arquivo.write_text(texto)
-          PY
+              arquivo.write_text(texto)
+              print("app/build.gradle corrigido.")
+          else:
+              print("app/build.gradle não encontrado.")
+
+      - name: Preparar Gradle
+        run: |
+          cd "$PROJECT_DIR"
+          gradle wrapper --gradle-version 8.7
+          chmod +x gradlew
 
       - name: Gerar APK
         run: |
-          cd projeto
+          cd "$PROJECT_DIR"
           ./gradlew clean assembleDebug --stacktrace
 
       - name: Procurar APK
         run: |
           echo "APKs encontrados:"
-          find projeto -type f -name "*.apk" -print
+          find "$PROJECT_DIR" -type f -name "*.apk" -print
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
           name: Lara-APK
-          path: projeto/**/*.apk
+          path: ${{ env.PROJECT_DIR }}/**/*.apk
           if-no-files-found: error
