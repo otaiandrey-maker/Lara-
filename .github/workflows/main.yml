@@ -2,105 +2,38 @@ name: Gerar APK da Lara
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar código
+      - name: Baixar projeto
         uses: actions/checkout@v4
 
-      - name: Configurar Java 17
+      - name: Configurar Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Descompactar projeto
-        run: |
-          mkdir -p projeto
-          unzip -o Lara_Android_Projeto.zip -d projeto
-
-      - name: Instalar Gradle
+      - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Localizar projeto Android
+      - name: Extrair projeto da Lara
         run: |
-          echo "Conteúdo extraído:"
-          find projeto -maxdepth 4 -type f | sort
-
-          if [ -f "projeto/settings.gradle" ] || [ -f "projeto/settings.gradle.kts" ]; then
-            echo "PROJECT_DIR=projeto" >> $GITHUB_ENV
-          else
-            DIR=$(find projeto -name settings.gradle -o -name settings.gradle.kts | head -1 | xargs dirname)
-            echo "PROJECT_DIR=$DIR" >> $GITHUB_ENV
-          fi
-
-      - name: Corrigir Java e Kotlin
-        run: |
-          cd "$PROJECT_DIR"
-
-          python3 <<'PY'
-          from pathlib import Path
-
-          arquivo = Path("app/build.gradle")
-
-          if arquivo.exists():
-              texto = arquivo.read_text()
-
-              texto = texto.replace("\\n", "\n")
-
-              if "sourceCompatibility" not in texto:
-                  texto += """
-
-          android {
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-          """
-
-              if "jvmTarget = \"17\"" not in texto:
-                  texto += """
-
-          tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-              kotlinOptions {
-                  jvmTarget = "17"
-              }
-          }
-          """
-
-              arquivo.write_text(texto)
-              print("app/build.gradle corrigido.")
-          else:
-              print("app/build.gradle não encontrado.")
-
-      - name: Preparar Gradle
-        run: |
-          cd "$PROJECT_DIR"
-          gradle wrapper --gradle-version 8.7
-          chmod +x gradlew
+          rm -rf lara
+          mkdir lara
+          unzip -q Lara_Android_Final_IA_Avatar.zip -d lara
 
       - name: Gerar APK
-        run: |
-          cd "$PROJECT_DIR"
-          ./gradlew clean assembleDebug --stacktrace
-
-      - name: Procurar APK
-        run: |
-          echo "APKs encontrados:"
-          find "$PROJECT_DIR" -type f -name "*.apk" -print
+        working-directory: lara
+        run: gradle assembleDebug --no-daemon
 
       - name: Disponibilizar APK
         uses: actions/upload-artifact@v4
         with:
-          name: Lara-APK
-          path: ${{ env.PROJECT_DIR }}/**/*.apk
-          if-no-files-found: error
+          name: Lara-Final-IA-Avatar
+          path: lara/app/build/outputs/apk/debug/app-debug.apk
