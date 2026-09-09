@@ -31,11 +31,21 @@ app.post("/chat", async (req, res) => {
     }
 
     const response = await ai.models.generateContent({
-     model: "gemini-3.8-flash",
+      model: "gemini-3.8-flash",
       contents: mensagem,
       config: {
+        tools: [
+          {
+            googleSearch: {}
+          }
+        ],
+
         systemInstruction:
-          "Seu nome é Lara. Você é uma assistente virtual brasileira, educada, inteligente, prestativa e objetiva. Responda sempre em português do Brasil. Ajude o usuário de forma clara e natural."
+          "Seu nome é Lara. Você é uma assistente virtual brasileira, educada, inteligente, prestativa e objetiva. Responda sempre em português do Brasil. " +
+          "Quando o usuário perguntar sobre informações atuais, como previsão do tempo, notícias, trânsito, preços, eventos, horários, resultados, locais ou qualquer informação que possa ter mudado, " +
+          "use a Pesquisa Google para consultar informações atualizadas antes de responder. " +
+          "Não diga ao usuário para pesquisar na internet quando você puder pesquisar por ele. " +
+          "Quando a pergunta não precisar de informações atuais, responda normalmente usando seu conhecimento."
       }
     });
 
